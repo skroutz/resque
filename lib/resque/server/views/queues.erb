@@ -40,6 +40,7 @@
       <td class='size'><%= resque.size queue %></td>
     </tr>
     <% end %>
+    <!----WIP: SKROUTZ------->
     <% if failed_multiple_queues? %>
       <% Resque::Failure.queues.sort_by { |q| q.to_s }.each_with_index do |queue, i| %>
       <tr class="<%= Resque::Failure.count(queue).zero? ? "failed" : "failure" %><%= " first_failure" if i.zero? %>">
@@ -53,6 +54,14 @@
         <td class='size'><%= Resque::Failure.count %></td>
       </tr>
     <% end %>
+    <!----WIP: SKROUTZ------->
+    <tr class="<%= Resque::Failure.count.zero? ? "failed" : "failure" %>">
+      <td class='queue failed'>
+	<a class="queue" href="<%= u :failed %>">failed</a>
+	<a class="queue" href="<%= u 'failed/overview' %>">(overview)</a>
+      </td>
+      <td class='size'><%= Resque::Failure.count %></td>
+    </tr>
   </table>
 
 <% end %>
