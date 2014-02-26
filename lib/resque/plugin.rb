@@ -74,5 +74,11 @@ module Resque
     def before_dequeue_hooks(job)
       get_hook_names(job, 'before_dequeue')
     end
+
+    # Given an object, returns a list `before_job_create` hook names.
+    def before_job_create_hooks(job)
+      job.methods.grep(/^before_job_create/).sort
+    end
+
   end
 end
