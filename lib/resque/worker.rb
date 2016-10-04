@@ -355,7 +355,7 @@ module Resque
       register_signal_handlers
       start_heartbeat
       prune_dead_workers
-      run_hook :before_first_fork
+      run_hook :before_first_fork, self
       register_worker
 
       # Fix buffering so we can `rake resque:work > resque.log` and
