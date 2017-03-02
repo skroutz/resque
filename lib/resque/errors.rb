@@ -16,6 +16,9 @@ module Resque
   end
   class PruneDeadWorkerDirtyExit < DirtyExit; end
 
+  # Raised when we want shuffling but weights are not provided.
+  class NoWeightError < RuntimeError; end
+
   # Raised when child process is TERM'd so job can rescue this to do shutdown work.
   class TermException < SignalException; end
 end
