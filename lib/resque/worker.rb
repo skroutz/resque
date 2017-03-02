@@ -141,6 +141,7 @@ module Resque
     # Workers should have `#prepare` called after they are initialized
     # if you are running work on the worker.
     def initialize(*queues)
+      initialize_queues_and_weights(queues)
       @shutdown = nil
       @paused = nil
       @before_first_fork_hook_ran = false
@@ -182,6 +183,24 @@ module Resque
         @static_queues = @queues.flatten.uniq
       end
       validate_queues
+      validate_weights if shuffling_enabled?
+    end
+
+    # Given an array of queues it parses each element to extract the queue name
+    # and weight factor for that queue. The weight is not required but either
+    # all queues must have one or none.
+    # If no queue has a weight assigned to it, the resolver defaults to the
+    # original strategy.
+    def initialize_queues_and_weights(queues)
+      @queues = []
+      @weights = {}
+
+      queues.each do |queue|
+        q, w = queue.to_s.strip.split('=')
+
+        @queues << q
+        @weights[q] = Integer(w) if w
+      end
     end
 
     # A worker must be given a queue, otherwise it won't know what to
@@ -206,6 +225,14 @@ module Resque
       Resque.queues.select do |queue|
         File.fnmatch?(pattern, queue)
       end.sort
+    end
+
+    # A worker must be given one weight for each queue, otherwise it won't
+    # know how to treat that queue while shuffling.
+    def validate_weights
+      if @weights.size != queues.size
+        raise NoWeightError.new("Please give each queue a weight factor.")
+      end
     end
 
     # This is the main workhorse method. Called on a Worker instance,
@@ -314,7 +341,7 @@ module Resque
     # Attempts to grab a job off one of the provided queues. Returns
     # nil if no job can be found.
     def reserve
-      queues.each do |queue|
+      (shuffled_queues || queues).each do |queue|
         log_with_severity :debug, "Checking #{queue}"
         if job = Resque.reserve(queue)
           log_with_severity :debug, "Found job on #{queue}"
@@ -345,6 +372,21 @@ module Resque
           raise
         end
       end
+    end
+
+    # Returns a shuffled list of queues to use when searching for job.
+    # The order in which the queues appear is a combination of randomness and
+    # weigted factor assigned to each queue.
+    def shuffled_queues
+      return nil unless shuffling_enabled?
+
+      queues.sort_by do |queue|
+        rand() * @weights[queue]
+      end.reverse
+    end
+
+    def shuffling_enabled?
+      @weights.any?
     end
 
     # Runs all the methods needed when a worker begins its lifecycle.
