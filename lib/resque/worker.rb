@@ -93,10 +93,28 @@ module Resque
     # in alphabetical order. Queues can be dynamically added or
     # removed without needing to restart workers using this method.
     def initialize(*queues)
-      @queues = queues.map { |queue| queue.to_s.strip }
+      initialize_queues_and_weights(queues)
       @shutdown = nil
       @paused = nil
       validate_queues
+      validate_weights if shuffling_enabled?
+    end
+
+    # Given an array of queues it parses each element to extract the queue name
+    # and weight factor for that queue. The weight is not required but either
+    # all queues must have one or none.
+    # If no queue has a weight assigned to it, the resolver defaults to the
+    # original strategy.
+    def initialize_queues_and_weights(queues)
+      @queues = []
+      @weights = {}
+
+      queues.each do |queue|
+        q, w = queue.to_s.strip.split('=')
+
+        @queues << q
+        @weights[q] = Integer(w) if w
+      end
     end
 
     # A worker must be given a queue, otherwise it won't know what to
@@ -106,6 +124,14 @@ module Resque
     def validate_queues
       if @queues.nil? || @queues.empty?
         raise NoQueueError.new("Please give each worker at least one queue.")
+      end
+    end
+
+    # A worker must be given one weight for each queue, otherwise it won't
+    # know how to treat that queue while shuffling.
+    def validate_weights
+      if @weights.size != queues.size
+        raise NoWeightError.new("Please give each queue a weight factor.")
       end
     end
 
@@ -204,7 +230,7 @@ module Resque
     # Attempts to grab a job off one of the provided queues. Returns
     # nil if no job can be found.
     def reserve
-      queues.each do |queue|
+      (shuffled_queues || queues).each do |queue|
         log! "Checking #{queue}"
         if job = Resque.reserve(queue)
           log! "Found job on #{queue}"
@@ -242,6 +268,21 @@ module Resque
     # can be useful for dynamically adding new queues.
     def queues
       @queues.map {|queue| queue == "*" ? Resque.queues.sort : queue }.flatten.uniq
+    end
+
+    # Returns a shuffled list of queues to use when searching for job.
+    # The order in which the queues appear is a combination of randomness and
+    # weigted factor assigned to each queue.
+    def shuffled_queues
+      return nil unless shuffling_enabled?
+
+      queues.sort_by do |queue|
+        rand() * @weights[queue]
+      end.reverse
+    end
+
+    def shuffling_enabled?
+      @weights.any?
     end
 
     # Not every platform supports fork. Here we do our magic to
