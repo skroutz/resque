@@ -385,9 +385,28 @@ module Resque
     def shuffled_queues
       return nil unless shuffling_enabled?
 
-      queues.sort_by do |queue|
-        rand() * @weights[queue]
-      end.reverse
+      weight_per_queue = @weights.dup
+
+      queues = []
+      while weight_per_queue.size > 1
+        picked = pick_random_queue(weight_per_queue)
+        weight_per_queue.delete(picked)
+        queues << picked
+      end
+      queues << weight_per_queue.keys.first
+
+      queues
+    end
+
+    def pick_random_queue(weight_per_queue)
+      total_weight = weight_per_queue.values.reduce(:+)
+      take = rand(0...total_weight)
+
+      accumulator = 0
+      weight_per_queue.each do |q, w|
+        return q if take < accumulator + w
+        accumulator += w
+      end
     end
 
     def shuffling_enabled?
