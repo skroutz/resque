@@ -211,7 +211,8 @@ module Resque
                                         :exception => params[:exception],
                                         :smart => params[:smart],
                                         :action => action,
-                                        :arg => queue)
+                                        :arg => queue,
+                                        :older_than => "#{params[:num]}#{params[:unit]}")
 
       redirect u('failed/overview')
     end
