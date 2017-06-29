@@ -1,6 +1,20 @@
 <% stats = Resque::Failure.backend.stats %>
 <h1>Failed Overview </h1>
-<p>failed: <%= Resque::Failure.count %></p>
+<p>
+<form style="margin-left:0px" method="POST" onsubmit="return confirm('Do you really want to delete selected jobs?');" action="<%= u 'failed/overview/action' %>" >
+  <span>Remove Jobs older than:</span>
+  <input type="text" name="num" value="30" maxlength="3" size="3"/>
+  <select name="unit">
+    <option value="m">Minutes</option>
+    <option value="h">Hours</option>
+    <option value="d" selected>Days</option>
+  </select>
+  <input type='submit' name='action' value='remove' />
+</form>
+</p>
+<h2>Failed: <%= Resque::Failure.count %></h2>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 
 <h2>Class</h2>
 <table>
