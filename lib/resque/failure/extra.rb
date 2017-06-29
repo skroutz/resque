@@ -24,13 +24,34 @@ module Resque
         opts.all? { |k, v|
           case k.to_sym
           when :class
-            job['payload']['class']
+            job['payload']['class'] == v
           when :smart
-            smart_classify(job)
+            smart_classify(job) == v
+          when :older_than
+            job_older_than?(job, v)
           else
-            job[k.to_s]
-          end == v
+            job[k.to_s] == v
+          end
         }
+      end
+
+      def job_older_than?(job, age)
+        now = DateTime.now
+        diff_days = now - DateTime.parse(job["failed_at"])
+
+        unit = age[-1]
+        num = age.chop.to_i
+
+        case unit
+        when "m"
+          (diff_days * 24 * 60) >= num
+        when "h"
+          (diff_days * 24) >= num
+        when "d"
+          diff_days >= num
+        else
+          false
+        end
       end
 
       # Yields failed jobs matching specific conditions,
@@ -67,6 +88,8 @@ module Resque
       def action_by(opts={}, &block)
         action = opts.delete(:action).to_sym || :requeue
         arg = opts.delete(:arg)
+        opts.delete_if { |k, v| v.nil? || v.empty?}
+
         count = 0
         each(opts) { |job, idx|
           # TODO removeme
