@@ -22,7 +22,16 @@ module Resque
       end
 
       def save
-        @backends.each(&:save)
+        exception = nil
+        @backends.each do |b|
+          begin
+            b.save
+          rescue => e
+            exception = e
+            log("Failed saving to #{b.class.name}, error #{e.to_s}")
+          end
+        end
+        raise exception if exception
       end
 
       # The number of failures.
