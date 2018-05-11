@@ -92,7 +92,7 @@ describe "Resque::Plugin ordering around_perform" do
   include PerformJob
 
   module AroundPerformPlugin1
-    def around_perform1(history)
+    def around_perform1(queue="", payload_class="", history)
       history << :around_perform_plugin1
       yield
     end
@@ -116,7 +116,7 @@ describe "Resque::Plugin ordering around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform(history)
+    def self.around_perform(queue="", payload_class="", history)
       history << :around_perform
       yield
     end
@@ -129,7 +129,7 @@ describe "Resque::Plugin ordering around_perform" do
   end
 
   module AroundPerformPlugin2
-    def around_perform2(history)
+    def around_perform2(queue="", payload_class="", history)
       history << :around_perform_plugin2
       yield
     end
@@ -141,7 +141,7 @@ describe "Resque::Plugin ordering around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform(history)
+    def self.around_perform(queue="", payload_class="", history)
       history << :around_perform
       yield
     end
@@ -154,7 +154,7 @@ describe "Resque::Plugin ordering around_perform" do
   end
 
   module AroundPerformDoesNotYield
-    def around_perform0(history)
+    def around_perform0(queue="", payload_class="", history)
       history << :around_perform0
     end
   end
@@ -166,7 +166,7 @@ describe "Resque::Plugin ordering around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform(history)
+    def self.around_perform(queue="", payload_class="", history)
       history << :around_perform
       yield
     end

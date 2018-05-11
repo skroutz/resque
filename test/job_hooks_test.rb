@@ -98,7 +98,7 @@ describe "Resque::Job around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform_record_history(history)
+    def self.around_perform_record_history(queue="", payload_class="", history)
       history << :start_around_perform
       yield
       history << :finish_around_perform
@@ -115,7 +115,7 @@ describe "Resque::Job around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform_fail(history)
+    def self.around_perform_fail(queue="", payload_class="", history)
       history << :start_around_perform
       raise StandardError
       yield
@@ -136,7 +136,7 @@ describe "Resque::Job around_perform" do
       history << :perform
       raise StandardError
     end
-    def self.around_perform_fail_in_yield(history)
+    def self.around_perform_fail_in_yield(queue="", payload_class="", history)
       history << :start_around_perform
       begin
         yield
@@ -159,7 +159,7 @@ describe "Resque::Job around_perform" do
     def self.perform(history)
       history << :perform
     end
-    def self.around_perform_dont_yield(history)
+    def self.around_perform_dont_yield(queue="", payload_class="", history)
       history << :start_around_perform
       history << :finish_around_perform
     end
@@ -368,7 +368,7 @@ describe "Resque::Job all hooks" do
     def self.before_perform_record_history(history)
       history << :before_perform
     end
-    def self.around_perform_record_history(history)
+    def self.around_perform_record_history(queue="", payload_class="", history)
       history << :start_around_perform
       yield
       history << :finish_around_perform
@@ -400,7 +400,7 @@ describe "Resque::Job all hooks" do
     def self.before_perform_record_history(history)
       history << :before_perform
     end
-    def self.around_perform_record_history(history)
+    def self.around_perform_record_history(queue="", payload_class="", history)
       history << :start_around_perform
       yield
       history << :finish_around_perform
@@ -445,7 +445,7 @@ describe "Resque::Job all hooks" do
       count['count'] += 1
     end
 
-    def self.around_perform_record_history(history, count)
+    def self.around_perform_record_history(queue="", payload_class="", history, count)
       history << :start_around_perform
       count['count'] += 1
       yield
