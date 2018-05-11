@@ -225,6 +225,8 @@ module Resque
       Resque.queues.select do |queue|
         File.fnmatch?(pattern, queue)
       end.sort
+    end
+
     # A worker must be given one weight for each queue, otherwise it won't
     # know how to treat that queue while shuffling.
     def validate_weights

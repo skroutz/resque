@@ -25,10 +25,23 @@ require 'rake/testtask'
 task :default => :test
 
 Rake::TestTask.new do |test|
-  test.verbose = true
+  test.verbose = false
   test.libs << "test"
   test.libs << "lib"
-  test.test_files = FileList['test/**/*_test.rb']
+  #test.test_files = FileList['test/child_killing_test.rb']
+  #test.test_files = FileList['test/job_hooks_test.rb']
+  #test.test_files = FileList['test/job_plugins_test.rb']
+  #test.test_files = FileList['test/resque_hook_test.rb']
+  # LAST: test.test_files = FileList['test/worker_test.rb']
+
+  # x test.test_files = FileList['test/resque_test.rb']
+  # x test.test_files = FileList['test/resque_failure_redis_test.rb']
+  # x test.test_files = FileList['test/resque_failure_multiple_test.rb']
+  # x test.test_files = FileList['test/resque-web_test.rb']
+  # x test.test_files = FileList['test/rake_test.rb']
+  # x test.test_files = FileList['test/plugin_test.rb']
+  # x test.test_files = FileList['test/logging_test.rb']
+  # x test.test_files = FileList['test/failure_base_test.rb']
 end
 
 if command? :kicker
