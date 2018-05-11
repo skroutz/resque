@@ -932,7 +932,7 @@ describe "Resque::Worker" do
 
     @worker.log("omghi mom")
 
-    assert_equal "*** omghi mom\n", messages.string
+    assert_equal "*** [#{$$}] *** omghi mom\n", messages.string
   end
 
   it "unsetting verbose works" do
