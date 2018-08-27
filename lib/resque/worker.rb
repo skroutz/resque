@@ -157,36 +157,42 @@ module Resque
       startup
 
       loop do
-        break if shutdown?
+        begin
+          break if shutdown?
 
-        if not paused? and job = reserve
-          log "got: #{job.inspect}"
-          job.worker = self
-          working_on job
+          if not paused? and job = reserve
+            log "got: #{job.inspect}"
+            job.worker = self
+            working_on job
 
-          if @child = fork(job)
-            srand # Reseeding
-            procline "Forked #{@child} at #{Time.now.to_i}"
-            begin
-              Process.waitpid(@child)
-            rescue SystemCallError
-              nil
+            if @child = fork(job)
+              srand # Reseeding
+              procline "Forked #{@child} at #{Time.now.to_i}"
+              begin
+                Process.waitpid(@child)
+              rescue SystemCallError
+                nil
+              end
+            else
+              unregister_signal_handlers if will_fork? && term_child
+              procline "Processing #{job.queue} since #{Time.now.to_i}"
+              reconnect
+              perform(job, &block)
+              exit! if will_fork?
             end
+
+            done_working
+            @child = nil
           else
-            unregister_signal_handlers if will_fork? && term_child
-            procline "Processing #{job.queue} since #{Time.now.to_i}"
-            reconnect
-            perform(job, &block)
-            exit! if will_fork?
+            break if interval.zero?
+            log! "Sleeping for #{interval} seconds"
+            procline paused? ? "Paused" : "Waiting for #{@queues.join(',')}"
+            sleep interval
           end
 
-          done_working
-          @child = nil
-        else
-          break if interval.zero?
-          log! "Sleeping for #{interval} seconds"
-          procline paused? ? "Paused" : "Waiting for #{@queues.join(',')}"
-          sleep interval
+          retried = false
+        rescue Redis::CannotConnectError => e
+          reconnect
         end
       end
 
