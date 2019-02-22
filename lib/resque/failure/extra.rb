@@ -79,7 +79,7 @@ module Resque
         end # while
       end
 
-      def each(*args,&block)
+      def iterate_failures(*args,&block)
         enum_for(:_each_with_index, *args).each(&block)
       end
 
@@ -91,7 +91,7 @@ module Resque
         opts.delete_if { |k, v| v.nil? || v.empty?}
 
         count = 0
-        each(opts) { |job, idx|
+        iterate_failures(opts) { |job, idx|
           # TODO removeme
           fetched = Resque.decode(Resque.redis.lindex('failed', idx))
           raise "not-equal" if job != fetched
@@ -154,7 +154,7 @@ module Resque
         by_smart = Hash.new(0)
         by_class_exception = Hash.new(0)
 
-        self.each { |job, _|
+        self.iterate_failures { |job, _|
           by_class[job['payload']['class']] += 1
           if smart = smart_classify(job)
             class_smart = [job['payload']['class'], smart]

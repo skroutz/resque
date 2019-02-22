@@ -204,7 +204,7 @@ module Resque
     end
 
     get "/failed/overview/list/?" do
-      @jobs = Resque::Failure.backend.each(:class => params[:class],
+      @jobs = Resque::Failure.backend.iterate_failures(:class => params[:class],
                                            :exception => params[:exception],
                                            :smart => params[:smart],
                                            :skip => params[:start].to_i)
