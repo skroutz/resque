@@ -1,3 +1,5 @@
+require 'resque/failure/blacklist_exceptions_registrar'
+
 module Resque
   module Failure
     # All Failure classes are expected to subclass Base.
@@ -5,6 +7,8 @@ module Resque
     # When a job fails, a new instance of your Failure backend is created
     # and #save is called.
     class Base
+      include BlacklistExceptionsRegistrar
+
       # The exception object raised by the failed job
       attr_accessor :exception
 
