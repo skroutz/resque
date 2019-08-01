@@ -17,11 +17,26 @@ module Resque
       # The payload object associated with the failed job
       attr_accessor :payload
 
+      # The exceptions that will not be pushed to failed queue
+      attr_reader :blacklisted_exceptions
+
       def initialize(exception, worker, queue, payload)
         @exception = exception
         @worker    = worker
         @queue     = queue
         @payload   = payload
+        @blacklisted_exceptions = []
+      end
+
+      # Set a list of blacklisted exceptions
+      #
+      # The method sets a list of exceptions which will
+      # not be pushed to the failed queue when a job fails and it's
+      # exception is included to the blacklisted ones.
+      #
+      # @param [Array<String>] exceptions the list of exceptions to blacklist
+      def set_blacklisted_exceptions(exceptions)
+        @blacklisted_exceptions = exceptions
       end
 
       # When a job fails, a new instance of your Failure backend is created
