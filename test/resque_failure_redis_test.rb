@@ -99,3 +99,50 @@ describe "Resque::Failure::Redis" do
   end
 
 end
+
+class CustomException < StandardError; end
+
+describe "blacklisted exceptions" do
+
+  let(:exception) { CustomException.new("Custom error") }
+  let(:queue) { "test" }
+  let(:worker) { Resque::Worker.new([queue]) }
+  let(:payload) { { "class" => Object, "args" => 3 } }
+  let(:blacklisted_exceptions) { [CustomException].map(&:name).map(&:to_s) }
+  let(:redis_backend) do
+    Resque::Failure::Redis.new(exception, worker, queue, payload)
+  end
+
+  describe "setting and using blacklisted exceptions" do
+    before do
+      Resque::Failure::Redis.clear
+      redis_backend.set_blacklisted_exceptions(blacklisted_exceptions)
+    end
+
+    it "returns blacklisted exceptions" do
+      assert_equal blacklisted_exceptions, redis_backend.blacklisted_exceptions
+    end
+
+    it "does not push to failed queue" do
+      redis_backend.save
+
+      assert_equal 0, Resque::Failure::Redis.count
+    end
+  end
+
+  describe "leaving blacklisted exceptions empty" do
+    before do
+      Resque::Failure::Redis.clear
+    end
+
+    it "returns blacklisted exceptions" do
+      assert_equal [], redis_backend.blacklisted_exceptions
+    end
+
+    it "pushes to failed queue" do
+      redis_backend.save
+
+      assert_equal 1, Resque::Failure::Redis.count
+    end
+  end
+end
