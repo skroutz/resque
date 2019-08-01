@@ -25,7 +25,7 @@ module Resque
         exception = nil
         @backends.each do |b|
           begin
-            b.save
+            b.save unless b.blacklisted_exception_raised?
           rescue => e
             exception = e
             log("Failed saving to #{b.class.name}, error #{e.to_s}")
