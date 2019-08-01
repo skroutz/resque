@@ -9,6 +9,7 @@ module Resque
 
       class << self
         attr_accessor :classes
+        attr_accessor :blacklisted_exceptions
       end
 
       def self.configure
@@ -19,6 +20,11 @@ module Resque
       def initialize(*args)
         super
         @backends = self.class.classes.map {|klass| klass.new(*args)}
+        @backends.each do |b|
+          if b.respond_to?(:set_blacklisted_exceptions)
+            b.set_blacklisted_exceptions(self.class.blacklisted_exceptions)
+          end
+        end
       end
 
       def save

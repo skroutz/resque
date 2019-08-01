@@ -16,6 +16,8 @@ module Resque
   end
 end
 
+class CustomException < StandardError; end
+
 describe "Resque::Failure::Multiple" do
 
   it 'requeue_all and does not raise an exception' do
@@ -62,3 +64,21 @@ describe "Resque::Failure::Multiple" do
     end
   end
 end
+
+describe "blacklisted_exceptions" do
+  it "sets blacklisted_exceptions on the multiple backend" do
+    Resque::Failure::Multiple.classes = [Resque::Failure::Redis]
+    blacklisted_exceptions = [CustomException].map(&:name).map(&:to_s)
+    Resque::Failure::Multiple.blacklisted_exceptions = blacklisted_exceptions
+    exception = CustomException.new("Custom error")
+    worker = Resque::Worker.new(:test)
+    payload = { "class" => Object, "args" => 3 }
+
+    multiple_backend = Resque::Failure::Multiple.new(exception, worker, 'test', payload)
+    backends = multiple_backend.instance_variable_get(:@backends)
+    backends.each do |b|
+      assert_equal blacklisted_exceptions, b.blacklisted_exceptions
+    end
+  end
+end
+
