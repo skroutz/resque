@@ -22,6 +22,11 @@ module Resque
           :worker    => worker.to_s,
           :queue     => queue
         }
+
+        if !blacklisted_exceptions.nil?
+          return if blacklisted_exceptions.include?(data[:exception])
+        end
+
         data = Resque.encode(data)
         data_store.push_to_failed_queue(data,Resque::Failure.failure_queue_name(queue))
       end
