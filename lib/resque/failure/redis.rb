@@ -16,6 +16,8 @@ module Resque
       end
 
       def save
+        return if blacklisted_exception_raised?
+
         data = {
           :failed_at => UTF8Util.clean(Time.now.strftime("%Y/%m/%d %H:%M:%S %Z")),
           :payload   => payload,

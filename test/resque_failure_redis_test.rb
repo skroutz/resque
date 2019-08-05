@@ -99,3 +99,83 @@ describe "Resque::Failure::Redis" do
   end
 
 end
+
+class CustomException < StandardError; end
+
+describe "blacklisted exceptions" do
+
+  let(:exception) { CustomException.new("Custom error") }
+  let(:queue) { "test" }
+  let(:worker) { Resque::Worker.new([queue]) }
+  let(:payload) { { "class" => Object, "args" => 3 } }
+  let(:blacklisted_exceptions) { ["CustomException"] }
+  let(:redis_backend) do
+    Resque::Failure::Redis.new(exception, worker, queue, payload)
+  end
+
+  describe "set blacklisted exceptions to empty array" do
+    before do
+      Resque::Failure::Redis.clear
+      Resque::Failure::Redis.set_blacklisted_exceptions([])
+    end
+
+    it "returns blacklisted exceptions" do
+      assert_equal [], redis_backend.class.get_blacklisted_exceptions
+    end
+
+    it "pushes to failed queue" do
+      redis_backend.save
+
+      assert_equal 1, Resque::Failure::Redis.count
+    end
+  end
+
+  describe "exception during set_blacklisted_exceptions" do
+    it "raises exception due to wrong argument type" do
+      assert_raises StandardError do
+        Resque::Failure::Redis.set_blacklisted_exceptions("CustomException")
+      end
+    end
+  end
+
+  describe "setting and using blacklisted exceptions" do
+    before do
+      Resque::Failure::Redis.clear
+      Resque::Failure::Redis.set_blacklisted_exceptions(blacklisted_exceptions)
+    end
+
+    it "returns blacklisted exceptions" do
+      assert_equal blacklisted_exceptions, redis_backend.class.get_blacklisted_exceptions
+    end
+
+    it "does not push to failed queue" do
+      redis_backend.save
+
+      assert_equal 0, Resque::Failure::Redis.count
+    end
+  end
+
+  describe "blacklisted_exception_raised?" do
+    describe "when raised exception is blacklisted" do
+      before do
+        Resque::Failure::Redis.clear
+        Resque::Failure::Redis.set_blacklisted_exceptions(blacklisted_exceptions)
+      end
+
+      it "returns true" do
+        assert_equal true, redis_backend.blacklisted_exception_raised?
+      end
+    end
+
+    describe "when raised exception is not blacklisted" do
+      before do
+        Resque::Failure::Redis.clear
+        Resque::Failure::Redis.set_blacklisted_exceptions(["AnotherException"])
+      end
+
+      it "returns false" do
+        assert_equal false, redis_backend.blacklisted_exception_raised?
+      end
+    end
+  end
+end
