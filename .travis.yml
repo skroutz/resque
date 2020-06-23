@@ -3,6 +3,7 @@ rvm:
   - 1.9.3
   - 2.2
   - 2.3.0
+  - 2.5.5
 sudo: false
 matrix:
   include:
