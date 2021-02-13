@@ -271,11 +271,23 @@ module Resque
     data_store.push_to_queue(queue,encode(item))
   end
 
-  # Pops a job off a queue. Queue name should be a string.
+  # Pops a job off a set of queues. Queue names should be a string.
   #
   # Returns a Ruby object.
-  def pop(queue)
-    decode(data_store.pop_from_queue(queue))
+  def pop(*queues)
+    queue, decoded_job = pop_with_queue(*queues)
+
+    decoded_job
+  end
+
+  # Pops a job off a set of queues. Queue names should be strings.
+  #
+  # Returns an array of [queue, Ruby object] or nil.
+  def pop_with_queue(*queues)
+    queue, job = data_store.pop_from_queue(*queues)
+    return if queue.nil?
+
+    [queue, decode(job)]
   end
 
   # Returns an integer representing the size of a queue.
@@ -435,11 +447,11 @@ module Resque
 
   # This method will return a `Resque::Job` object or a non-true value
   # depending on whether a job can be obtained. You should pass it the
-  # precise name of a queue: case matters.
+  # precise queue names: case matters.
   #
   # This method is considered part of the `stable` API.
-  def reserve(queue)
-    Job.reserve(queue)
+  def reserve(*queues)
+    Job.reserve(*queues)
   end
 
   # Validates if the given klass could be a valid Resque job

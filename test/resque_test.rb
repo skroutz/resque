@@ -48,6 +48,25 @@ describe "Resque" do
     assert_equal '/tmp', job.args[1]
   end
 
+  it "can grab jobs off multiple queues" do
+    Resque::Job.create(:jobs1, 'some-job', 20, '/tmp')
+    Resque::Job.create(:jobs2, 'some-job', 40, '/')
+
+    job = Resque.reserve(:jobs1, :jobs2)
+
+    assert_kind_of Resque::Job, job
+    assert_equal SomeJob, job.payload_class
+    assert_equal 20, job.args[0]
+    assert_equal '/tmp', job.args[1]
+
+    job = Resque.reserve(:jobs1, :jobs2)
+
+    assert_kind_of Resque::Job, job
+    assert_equal SomeJob, job.payload_class
+    assert_equal 40, job.args[0]
+    assert_equal '/', job.args[1]
+  end
+
   it "can re-queue jobs" do
     Resque::Job.create(:jobs, 'some-job', 20, '/tmp')
 
