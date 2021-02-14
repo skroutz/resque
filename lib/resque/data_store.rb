@@ -131,7 +131,7 @@ module Resque
       # the required round-trips especially for workers with
       # many queues in their watchlists.
       #
-      # Returns a array of [key-index, element value] or nil
+      # Returns an array of [key-index, element value] or nil
       # if no element was found.
       #
       # Note that we choose to return the key index instead
@@ -142,7 +142,7 @@ module Resque
       def mlpop(*queues, keys:)
         @redis.evalsha(mlpop_sha, keys: keys)
       rescue Redis::CommandError => e
-        # If the script  is not found (e.g. when the server
+        # If the script is not found (e.g. when the server
         # is restarted) reload it.
         if e.message.include?("NOSCRIPT")
           mlpop_sha!
