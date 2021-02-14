@@ -275,7 +275,7 @@ module Resque
   #
   # Returns a Ruby object.
   def pop(*queues)
-    queue, decoded_job = pop_with_queue(*queues)
+    _, decoded_job = pop_with_queue(*queues)
 
     decoded_job
   end
