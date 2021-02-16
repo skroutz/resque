@@ -122,7 +122,7 @@ module Resque
         end
       end
 
-      # MLPOP key [key ..]
+      # MLPOP key [key ...]
       #
       # LPOP the first available element by probing each key
       # in the specified order.
