@@ -284,7 +284,7 @@ module Resque
   #
   # Returns an array of [queue, Ruby object] or nil.
   def pop_with_queue(*queues)
-    _, job = data_store.pop_from_queue(*queues)
+    queue, job = data_store.pop_from_queue(*queues)
     return if queue.nil?
 
     [queue, decode(job)]
