@@ -139,8 +139,8 @@ module Resque
       # passed to the script (adding a prefix), and we would
       # have to reverse map the return values. We avoid that
       # by returning the index instead.
-      def mlpop(*queues, keys:)
-        @redis.evalsha(mlpop_sha, keys: keys)
+      def mlpop(*queues)
+        @redis.evalsha(mlpop_sha, keys: queues)
       rescue Redis::CommandError => e
         # If the script is not found (e.g. when the server
         # is restarted) reload it.
@@ -154,7 +154,7 @@ module Resque
 
       def pop_from_queue(*queues)
         keys = queues.map { |q| redis_key_for_queue(q) }
-        key_idx, payload = mlpop(*queues, keys: keys)
+        key_idx, payload = mlpop(*keys)
         return nil if key_idx.nil?
 
         [queues[Integer(key_idx)], payload]
