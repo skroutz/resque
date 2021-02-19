@@ -122,10 +122,44 @@ module Resque
         end
       end
 
-      # Pop whatever is on queue
-      def pop_from_queue(queue)
-        @redis.lpop(redis_key_for_queue(queue))
+      # MLPOP key [key ...]
+      #
+      # LPOP the first available element by probing each key
+      # in the specified order.
+      #
+      # Moving the scheduling logic to the server reduces
+      # the required round-trips especially for workers with
+      # many queues in their watchlists.
+      #
+      # Returns an array of [key-index, element value] or nil
+      # if no element was found.
+      #
+      # Note that we choose to return the key index instead
+      # of the key itself: Redis::Namespace converts the keys
+      # passed to the script (adding a prefix), and we would
+      # have to reverse map the return values. We avoid that
+      # by returning the index instead.
+      def mlpop(*queues)
+        @redis.evalsha(mlpop_sha, keys: queues)
+      rescue Redis::CommandError => e
+        # If the script is not found (e.g. when the server
+        # is restarted) reload it.
+        if e.message.include?("NOSCRIPT")
+          mlpop_sha!
+          retry
+        end
+
+        raise e
       end
+
+      def pop_from_queue(*queues)
+        keys = queues.map { |q| redis_key_for_queue(q) }
+        key_idx, payload = mlpop(*keys)
+        return nil if key_idx.nil?
+
+        [queues[Integer(key_idx)], payload]
+      end
+
 
       # Get the number of items in the queue
       def queue_size(queue)
@@ -175,6 +209,27 @@ module Resque
       end
 
     private
+
+      # Return the mlpop script sha hash by loading the script to Redis
+      def mlpop_sha
+        @mlpop_sha ||= @redis.script(:load, <<-eos
+          for i, q in ipairs(KEYS) do
+            local qpop = redis.call("lpop", q)
+            if qpop then
+                -- return the zero-index position
+                return {i-1, qpop}
+            end
+          end
+          return false
+          eos
+        )
+      end
+
+      def mlpop_sha!
+        @mlpop_sha = nil
+        mlpop_sha
+      end
+
 
       def redis_key_for_queue(queue)
         "queue:#{queue}"
