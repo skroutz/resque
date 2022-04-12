@@ -14,6 +14,7 @@ module Resque
     include Resque::Helpers
     extend Resque::Helpers
     include Resque::Logging
+    prepend Resque::WorkerJobRemoval
 
     @@all_heartbeat_threads = []
     def self.kill_all_heartbeat_threads

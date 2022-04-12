@@ -9,6 +9,9 @@ require 'resque/errors'
 require 'resque/failure'
 require 'resque/failure/base'
 
+require 'resque/job_removal'
+require 'resque/worker_job_removal'
+
 require 'resque/helpers'
 require 'resque/stat'
 require 'resque/logging'
@@ -25,6 +28,7 @@ require 'resque/vendor/utf8_util'
 
 module Resque
   include Helpers
+  include JobRemoval
   extend self
 
   # Given a Ruby object, returns a string suitable for storage in a
