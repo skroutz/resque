@@ -317,6 +317,17 @@ module Resque
     data_store.queue_names
   end
 
+  # Instruct all workers to kill their current running job
+  # if it matches the given class or class + smart id.
+  #
+  # The smart id can be a string which will be used by a custom
+  # smart kill matcher to identify & kill a subset of the class's jobs.
+  def killall(klass, smart_id = nil)
+    opkey = "kill_operation:#{Time.now.to_i}"
+    data_store.set(opkey, [klass, smart_id].compact.join('/'))
+    data_store.expire(opkey, 60)
+  end
+
   # Given a queue name, completely deletes the queue.
   def remove_queue(queue)
     data_store.remove_queue(queue)

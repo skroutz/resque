@@ -67,6 +67,10 @@ module Resque
     attr_writer :to_s
     attr_writer :pid
 
+    class << self
+      attr_accessor :smart_kill_matcher
+    end
+
     # Returns an array of all worker objects.
     def self.all
       data_store.worker_ids.map { |id| find(id, :skip_exists => true) }.compact
@@ -354,6 +358,7 @@ module Resque
       enable_gc_optimizations
       register_signal_handlers
       start_heartbeat
+      start_kill_operations_thread if fork_per_job?
       prune_dead_workers
       run_hook :before_first_fork, self
       register_worker
@@ -495,6 +500,49 @@ module Resque
           seconds_since_heartbeat > Resque.prune_interval
         else
           false
+        end
+      end
+    end
+
+    # Check every 5 seconds the kill operations placed by Resque.killall and kill
+    # the current running child if the job matches the given class or class + smart id.
+    def start_kill_operations_thread
+      @kill_operations_thread = Thread.new do
+        loop do
+          sleep 5
+
+          child = @child
+          j = job
+
+          next unless child
+          next unless j['payload'].is_a?(Hash) && j['payload']['class']
+
+          candidate_kill_ops = data_store.keys.select do |k|
+            k.include?('kill_operation') && k.split(':').last.to_i > @last_fork_time
+          end
+
+          next if candidate_kill_ops.empty?
+
+          jobs_to_kill = candidate_kill_ops.map { |cko| data_store.get(cko) }
+
+          curr_job_class = j['payload']['class']
+          curr_job_smart_id = if !(km = self.class.smart_kill_matcher).nil?
+                                km.call(j['payload'])
+                              else
+                                nil
+                              end
+
+          should_kill_child = jobs_to_kill.any? do |jtk|
+            class_to_kill, smart_id_to_kill = jtk.split('/')
+
+            if curr_job_smart_id && smart_id_to_kill
+              curr_job_class == class_to_kill && curr_job_smart_id == smart_id_to_kill
+            else
+              curr_job_class == class_to_kill
+            end
+          end
+
+          Process.kill('KILL', child) rescue next if should_kill_child
         end
       end
     end
@@ -895,6 +943,8 @@ module Resque
     def perform_with_fork(job, &block)
       run_hook :before_fork, job
 
+      @last_fork_time = Time.now.to_i
+
       begin
         @child = fork do
           unregister_signal_handlers if term_child
@@ -908,7 +958,7 @@ module Resque
       end
 
       srand # Reseeding
-      procline "Forked #{@child} at #{Time.now.to_i}"
+      procline "Forked #{@child} at #{@last_fork_time}"
 
       begin
         Process.waitpid(@child)
