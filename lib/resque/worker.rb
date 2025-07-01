@@ -422,8 +422,8 @@ module Resque
     # Schedule this worker for shutdown. Will finish processing the
     # current job.
     def shutdown
-      log_with_severity :info, 'Exiting...'
       @shutdown = true
+      log_with_severity :info, 'Exiting...'
     end
 
     # Kill the child and shutdown immediately.
