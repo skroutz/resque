@@ -1,3 +1,3 @@
 module Resque
-  Version = VERSION = '1.27.4.skroutz.5'
+  Version = VERSION = '1.27.4.skroutz.6'
 end
